@@ -49,7 +49,7 @@ RAG 不改权重（或少改），通过外挂知识库注入事实；知识变�
 
 ### 2.3 端到端链路
 
-一条可面试讲清的 Minimal RAG 链路如下：
+一条典型的 Minimal RAG 链路如下：
 
 1. 文档解析与清洗（txt / md / pdf 等）
 2. 分块（层级优先 + 语义分块 + overlap）
@@ -155,7 +155,7 @@ BM25 基于词频（TF）与逆文档频率（IDF），擅长关键词、专有�
 
 生产级 RAG 常采用 **BM25 + 向量** 双路召回：分别取 top-k，按 chunk_id 去重合并候选池。
 融合方式可选：简单并集后交由 Rerank；或 Reciprocal Rank Fusion（RRF）加权后再精排。
-本项目类 Minimal RAG 的推荐话术：多 query × 双通道召回 → 去重 → Cross-Encoder 统一打分 → 最终顺序只信 Rerank。
+本项目类 Minimal RAG 的推荐流程：多 query × 双通道召回 → 去重 → Cross-Encoder 统一打分 → 最终顺序由 Rerank 决定。
 
 ---
 

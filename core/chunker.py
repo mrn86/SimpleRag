@@ -1,6 +1,6 @@
 """Hierarchical + semantic chunker.
 
-Strategy (interview talking point):
+Strategy:
 1. Prefer splitting by markdown / document headings to keep semantic boundaries.
 2. If a section exceeds chunk_size, split by sentence embedding similarity valleys.
 3. Keep overlap between adjacent chunks to avoid context fragmentation.

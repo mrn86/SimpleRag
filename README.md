@@ -1,6 +1,6 @@
 # Minimal RAG
 
-可面试讲清的本地 Minimal RAG：**自己编排**文档解析、层级+语义分块、BM25+FAISS 混合检索、Query 改写、BGE Rerank、上下文组装与带引用生成——不是 LangChain 一行封装的玩具 Demo。
+本地 Minimal RAG：文档解析、层级+语义分块、BM25+FAISS 混合检索、Query 改写、Rerank、上下文组装与带引用生成。
 
 ## 端到端链路
 
@@ -34,12 +34,12 @@ simpleRag/
 ├── core/
 │   ├── document_parser.py   # txt / md / pdf（pypdfium2）
 │   ├── chunker.py           # 标题优先 + 语义分块 + overlap
-│   ├── embedder.py          # OpenAI 兼容 embedding
-│   ├── bm25_index.py        # 自管语料/分词的 BM25
+│   ├── embedder.py          # Embedding（DashScope / OpenAI / local）
+│   ├── bm25_index.py        # BM25 索引
 │   ├── vector_store.py      # FAISS
 │   ├── query_rewrite.py     # LLM 改写 + 关键词
 │   ├── retriever.py         # 多路召回编排
-│   ├── reranker.py          # BGE Cross-Encoder
+│   ├── reranker.py          # Rerank（DashScope / local / HF）
 │   ├── context_builder.py   # 长度截断 + 来源标注
 │   ├── llm_generator.py     # Chat Completions
 │   └── pipeline.py          # 建索引 / 问答编排
@@ -49,33 +49,33 @@ simpleRag/
 └── data/sample/             # 样例文档
 ```
 
-## 核心设计（面试话术）
+## 核心设计
 
 ### 1. 分块：层级优先 + 语义分块
 
 固定大小分块容易把完整语义切两半。本项目：
 
-1. **优先按标题**（Markdown `#` / PDF 启发式标题）切 section，保证语义边界  
-2. section 超长时，对句子做 embedding，在**相似度低谷**处切  
-3. 块之间保留 **overlap**，防止上下文割裂  
+1. 优先按标题（Markdown `#` / PDF 启发式标题）切 section，保证语义边界  
+2. section 超长时，对句子做 embedding，在相似度低谷处切  
+3. 块之间保留 overlap，防止上下文割裂  
 
 ### 2. 混合索引：BM25 + FAISS
 
 | 通道 | 职责 |
 |------|------|
-| BM25（jieba + rank_bm25，自管倒排/词频） | 关键词、专有名词 |
+| BM25（jieba + rank_bm25） | 关键词、专有名词 |
 | FAISS（IndexFlatIP + L2 归一化） | 语义召回 |
 
-两路**分开构建、分开检索**。
+两路分开构建、分开检索。
 
-### 3. 融合策略（不是简单拼列表）
+### 3. 融合策略
 
 ```
 query → 改写得到多个 query
      → 分别走 BM25 / 向量 top-k
      → 按 chunk_id 去重合并候选
-     → BGE Rerank 统一打分
-     → 取 topN（最终顺序只信 rerank）
+     → Rerank 统一打分
+     → 取 topN（最终顺序由 rerank 决定）
 ```
 
 ### 4. Query 改写
@@ -91,7 +91,7 @@ query → 改写得到多个 query
 ### 6. 模型切换
 
 - **LLM**：OpenAI 兼容接口（DeepSeek / Ollama / 通义 / vLLM），改 `OPENAI_BASE_URL` + `LLM_MODEL`
-- **Embedding / Rerank**：默认 **阿里云百炼/千问**（`DASHSCOPE_API_KEY` + `text-embedding-v3` / `qwen3-rerank`）；也可 `local` 本机 BGE 或 `hf` 远程
+- **Embedding / Rerank**：默认阿里云百炼/千问（`DASHSCOPE_API_KEY` + `text-embedding-v3` / `qwen3-rerank`）；也可 `local` 本机 BGE 或 `hf` 远程
 
 ## 快速开始
 
@@ -105,7 +105,7 @@ pip install -r requirements.txt
 
 # 2. 配置
 copy .env.example .env
-# 编辑 .env：填入 OPENAI_API_KEY / BASE_URL / 模型名
+# 编辑 .env：填入 OPENAI_API_KEY、DASHSCOPE_API_KEY 等
 
 # 3. 命令行 Demo
 python demo.py
@@ -125,18 +125,15 @@ python eval/ragas_eval.py --skip-ragas   # 仅检索指标
 python eval/ragas_eval.py                # + Ragas 生成指标
 ```
 
-### Ollama 示例
+### Ollama 示例（仅 LLM）
 
 ```env
 OPENAI_API_KEY=ollama
 OPENAI_BASE_URL=http://localhost:11434/v1
 LLM_MODEL=qwen2.5:7b
-EMBEDDING_MODEL=nomic-embed-text
 ```
 
-默认 Embedding / Rerank 走 **HuggingFace 远程 Inference**（需 `HF_TOKEN` 具备 Inference Providers 权限）。
-若 Token 只有 Read、没有 Inference 权限，会返回 403；到 https://huggingface.co/settings/tokens 重建并勾选 Inference。
-也可改 `EMBEDDING_PROVIDER=local` / `RERANKER_PROVIDER=local` 改回本机加载。
+Embedding / Rerank 仍建议使用 DashScope，或改 `EMBEDDING_PROVIDER=local` / `RERANKER_PROVIDER=local`。
 
 ## 评估指标
 
@@ -149,12 +146,12 @@ EMBEDDING_MODEL=nomic-embed-text
 
 测试集：[`eval/sample_testset.json`](eval/sample_testset.json)。报告写入 `storage/eval_report.json`。
 
-## 局限（诚实写进简历/面试）
+## 局限
 
 - **无 OCR**：扫描件 PDF 暂不支持，后续可接 PaddleOCR / 云 OCR  
 - **索引更新**：上传后对本地库做简单全量重建，非细粒度增量/删除版本管理  
 - **FAISS Flat**：适合中小规模本地 Demo；更大规模需 IVF/HNSW 与分片  
-- **Rerank 成本**：Cross-Encoder 首次加载与推理有延迟；可用更小模型或远端 Rerank API  
+- **Rerank 成本**：远端 API 或本地 Cross-Encoder 均有延迟与费用考量  
 - **语义分块**：依赖 embedding 质量与阈值；无 API 时退化为按句打包  
 
 ## API 示例
