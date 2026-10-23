@@ -1,0 +1,30 @@
+# Core
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.9
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+httpx>=0.26.0
+openai>=1.12.0
+huggingface_hub>=0.26.0
+
+# Document parsing
+pypdfium2>=4.27.0
+
+# Indexing & retrieval
+numpy>=1.26.0
+faiss-cpu>=1.7.4
+rank-bm25>=0.2.2
+jieba>=0.42.1
+
+# Rerank
+sentence-transformers>=2.5.0
+torch>=2.1.0
+
+# Eval (optional)
+ragas>=0.1.14
+datasets>=2.16.0
+
+# Utils
+tqdm>=4.66.0

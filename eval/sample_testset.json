@@ -1,0 +1,27 @@
+[
+  {
+    "question": "什么是RAG？",
+    "ground_truth": "RAG（Retrieval-Augmented Generation）把外部知识检索与大语言模型生成结合起来，先召回相关文档再交给LLM生成，以减少幻觉并支持私有知识问答。",
+    "relevant_keywords": ["检索增强生成", "召回", "幻觉"]
+  },
+  {
+    "question": "为什么要用BM25和向量混合检索？",
+    "ground_truth": "向量检索擅长语义相似但对专有名词可能不足；BM25擅长关键词精确匹配。双路召回后再用Cross-Encoder如BGE Reranker统一打分。",
+    "relevant_keywords": ["BM25", "向量", "Reranker", "专有名词"]
+  },
+  {
+    "question": "分块策略为什么不能只用固定长度窗口？",
+    "ground_truth": "固定长度容易把完整语义切两半。应采用层级优先加语义分块，按标题切分，超长再按句子相似度找断层，并保留overlap。",
+    "relevant_keywords": ["层级优先", "语义分块", "overlap", "标题"]
+  },
+  {
+    "question": "Query改写有什么作用？",
+    "ground_truth": "用户问题短而模糊时，改写可生成多个语义等价查询并提取关键词，提高召回覆盖率。",
+    "relevant_keywords": ["改写", "关键词", "召回"]
+  },
+  {
+    "question": "如何评估RAG的幻觉？",
+    "ground_truth": "生成侧可用Ragas的Faithfulness（忠实度）衡量幻觉；同时看Answer Relevancy。检索侧可用Hit Rate和Recall@k。",
+    "relevant_keywords": ["Faithfulness", "幻觉", "Hit Rate", "Recall"]
+  }
+]

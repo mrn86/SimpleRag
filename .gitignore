@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.idea/
+.vscode/
+storage/
+data/uploads/*
+!data/uploads/.gitkeep
+*.pkl
+.DS_Store
