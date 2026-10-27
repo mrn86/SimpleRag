@@ -15,12 +15,17 @@ from config.settings import settings
 from core.pipeline import RAGPipeline
 
 
+def _index_ready(storage: Path) -> bool:
+    faiss_meta = storage / "faiss" / "faiss_meta.json"
+    db_path = RAGPipeline._bm25_db_path(storage)
+    return faiss_meta.exists() and db_path.exists()
+
+
 def build_index(pipeline: RAGPipeline, data_dirs: list[Path], force: bool = False) -> None:
     storage = settings.storage_path
-    faiss_meta = storage / "faiss" / "faiss_meta.json"
 
-    if faiss_meta.exists() and not force:
-        print(f"Loading existing index from {storage} ...")
+    if _index_ready(storage) and not force:
+        print(f"Loading existing index from {storage} (SQLite BM25 + FAISS) ...")
         pipeline.load(storage)
         print(f"Loaded: {pipeline.stats}")
         return

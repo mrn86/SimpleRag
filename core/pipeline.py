@@ -80,15 +80,21 @@ class RAGPipeline:
 
     # ---------- persistence ----------
 
+    @staticmethod
+    def _bm25_db_path(storage_dir: Path) -> Path:
+        p = Path(settings.db_path)
+        return p if p.is_absolute() else storage_dir / p
+
     def save(self, storage_dir: str | Path | None = None) -> None:
         storage_dir = Path(storage_dir or settings.storage_path)
         storage_dir.mkdir(parents=True, exist_ok=True)
-        self.bm25.save(storage_dir / "bm25")
+        # BM25 inverted index → SQLite; vectors → FAISS files
+        self.bm25.save(self._bm25_db_path(storage_dir))
         self.vector_store.save(storage_dir / "faiss")
 
     def load(self, storage_dir: str | Path | None = None) -> None:
         storage_dir = Path(storage_dir or settings.storage_path)
-        self.bm25.load(storage_dir / "bm25")
+        self.bm25.load(self._bm25_db_path(storage_dir))
         self.vector_store.load(storage_dir / "faiss")
         # Prefer FAISS chunk list as canonical
         self.chunks = list(self.vector_store._chunks)

@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     # Paths
     data_dir: str = "data"
     storage_dir: str = "storage"
+    # BM25 inverted index SQLite DB (relative to storage_dir unless absolute)
+    db_path: str = "rag.db"
 
     @property
     def root(self) -> Path:
@@ -64,6 +66,11 @@ class Settings(BaseSettings):
     @property
     def storage_path(self) -> Path:
         return ROOT_DIR / self.storage_dir
+
+    @property
+    def db_file(self) -> Path:
+        p = Path(self.db_path)
+        return p if p.is_absolute() else self.storage_path / p
 
     @property
     def uploads_path(self) -> Path:

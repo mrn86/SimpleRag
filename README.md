@@ -35,8 +35,9 @@ simpleRag/
 │   ├── document_parser.py   # txt / md / pdf（pypdfium2）
 │   ├── chunker.py           # 标题优先 + 语义分块 + overlap
 │   ├── embedder.py          # Embedding（DashScope / OpenAI / local）
-│   ├── bm25_index.py        # BM25 索引
-│   ├── vector_store.py      # FAISS
+│   ├── db.py                # SQLite：BM25 倒排 / chunk 语料
+│   ├── bm25_index.py        # BM25（倒排落 SQLite）
+│   ├── vector_store.py      # FAISS 向量索引
 │   ├── query_rewrite.py     # LLM 改写 + 关键词
 │   ├── retriever.py         # 多路召回编排
 │   ├── reranker.py          # Rerank（DashScope / local / HF）
@@ -46,7 +47,10 @@ simpleRag/
 ├── api/main.py              # FastAPI：upload / ask
 ├── eval/ragas_eval.py       # Hit Rate、Recall@k、Ragas
 ├── demo.py                  # 命令行一键跑通
-└── data/sample/             # 样例文档
+├── data/sample/             # 样例文档
+└── storage/
+    ├── rag.db               # SQLite：倒排 + chunk
+    └── faiss/               # FAISS：faiss.index + meta
 ```
 
 ## 核心设计
@@ -61,12 +65,12 @@ simpleRag/
 
 ### 2. 混合索引：BM25 + FAISS
 
-| 通道 | 职责 |
-|------|------|
-| BM25（jieba + rank_bm25） | 关键词、专有名词 |
-| FAISS（IndexFlatIP + L2 归一化） | 语义召回 |
+| 通道 | 职责 | 持久化 |
+|------|------|--------|
+| BM25（jieba + rank_bm25） | 关键词、专有名词 | SQLite `storage/rag.db`（`inverted` 倒排表） |
+| FAISS（IndexFlatIP + L2 归一化） | 语义召回 | `storage/faiss/faiss.index` |
 
-两路分开构建、分开检索。
+两路分开构建、分开检索；启动时从库/文件加载到内存再检索。
 
 ### 3. 融合策略
 
@@ -149,7 +153,7 @@ Embedding / Rerank 仍建议使用 DashScope，或改 `EMBEDDING_PROVIDER=local`
 ## 局限
 
 - **无 OCR**：扫描件 PDF 暂不支持，后续可接 PaddleOCR / 云 OCR  
-- **索引更新**：上传后对本地库做简单全量重建，非细粒度增量/删除版本管理  
+- **索引更新**：上传后对 SQLite 倒排 + FAISS 做简单全量重建，非细粒度增量/删除版本管理  
 - **FAISS Flat**：适合中小规模本地 Demo；更大规模需 IVF/HNSW 与分片  
 - **Rerank 成本**：远端 API 或本地 Cross-Encoder 均有延迟与费用考量  
 - **语义分块**：依赖 embedding 质量与阈值；无 API 时退化为按句打包  

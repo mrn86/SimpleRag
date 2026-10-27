@@ -26,7 +26,9 @@ def get_pipeline() -> RAGPipeline:
     if _pipeline is None:
         _pipeline = RAGPipeline()
         storage = settings.storage_path
-        if (storage / "faiss" / "faiss_meta.json").exists():
+        faiss_ok = (storage / "faiss" / "faiss_meta.json").exists()
+        db_ok = settings.db_file.exists()
+        if faiss_ok and db_ok:
             _pipeline.load(storage)
         else:
             # Bootstrap from sample + uploads if any

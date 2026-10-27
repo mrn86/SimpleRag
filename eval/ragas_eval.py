@@ -133,7 +133,9 @@ def evaluate_generation_ragas(
 
 def ensure_index(pipeline: RAGPipeline, rebuild: bool) -> None:
     storage = settings.storage_path
-    if (storage / "faiss" / "faiss_meta.json").exists() and not rebuild:
+    faiss_ok = (storage / "faiss" / "faiss_meta.json").exists()
+    db_ok = settings.db_file.exists()
+    if faiss_ok and db_ok and not rebuild:
         pipeline.load(storage)
         return
 
